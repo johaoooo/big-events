@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String        @id @default(cuid())
+  name            String
+  email           String        @unique
+  phone           String?
+  passwordHash    String
+  role            String        @default("USER") // USER, ORGANIZER, SELLER, SCANNER, ADMIN
+  avatar          String?
+  country         String        @default("BJ")
+  verified        Boolean       @default(true)
+  loyaltyPoints   Int           @default(250)
+  referralCode    String        @unique
+  referredBy      String?
+  walletBalance   Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  events          Event[]
+  tickets         Ticket[]
+  orders          Order[]
+  shop            Shop?
+  roleRequests    RoleRequest[]
+  redemptions     LoyaltyRedemption[]
+}
+
+model RoleRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetRole  String   // ORGANIZER, SELLER
+  companyName String
+  motivation  String
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  createdAt   DateTime @default(now())
+}
+
+model Event {
+  id              String       @id @default(cuid())
+  title           String
+  slug            String       @unique
+  description     String
+  category        String       // CONCERT, FESTIVAL, SOIREE, SPORT, CONFERENCE, THEATRE, HUMOUR
+  date            DateTime
+  endDate         DateTime?
+  location        String
+  city            String       @default("Cotonou")
+  country         String       @default("Bénin")
+  coverImage      String
+  featured        Boolean      @default(false)
+  status          String       @default("PUBLISHED") // DRAFT, PUBLISHED, PAST, CANCELLED
+  jySeraiEnabled  Boolean      @default(true)
+  jySeraiFrameUrl String?
+  jySeraiCount    Int          @default(42)
+  organizerId     String
+  organizer       User         @relation(fields: [organizerId], references: [id])
+  ticketTypes     TicketType[]
+  tickets         Ticket[]
+  badges          Badge[]
+  createdAt       DateTime     @default(now())
+}
+
+model TicketType {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name        String   // Standard, VIP, VVIP, Table Royale
+  description String?
+  price       Int      // en FCFA (0 pour gratuit)
+  quantity    Int      @default(200)
+  sold        Int      @default(0)
+  tickets     Ticket[]
+}
+
+model Ticket {
+  id            String     @id @default(cuid())
+  ticketCode    String     @unique
+  qrPayload     String     @unique
+  eventId       String
+  event         Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  ticketTypeId  String
+  ticketType    TicketType @relation(fields: [ticketTypeId], references: [id])
+  userId        String?
+  user          User?      @relation(fields: [userId], references: [id])
+  buyerName     String
+  buyerEmail    String
+  buyerPhone    String
+  pricePaid     Int
+  status        String     @default("VALID") // VALID, USED, CANCELLED
+  scannedAt     DateTime?
+  scannedBy     String?
+  paymentRef    String?
+  createdAt     DateTime   @default(now())
+}
+
+model Badge {
+  id                 String   @id @default(cuid())
+  eventId            String
+  event              Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  holderName         String
+  organization       String
+  accreditationLevel String   // PRESSE, STAFF, ARTISTE, VIP, SECURITE
+  badgeCode          String   @unique
+  createdAt          DateTime @default(now())
+}
+
+model LiveEvent {
+  id            String       @id @default(cuid())
+  title         String
+  slug          String       @unique
+  description   String
+  artistOrHost  String
+  coverImage    String
+  streamUrl     String       // HLS ou embed/video URL
+  roomName      String       @unique
+  scheduledAt   DateTime
+  price         Int          @default(2000) // FCFA
+  status        String       @default("SCHEDULED") // SCHEDULED, LIVE, ENDED
+  viewerCount   Int          @default(128)
+  tickets       LiveTicket[]
+  createdAt     DateTime     @default(now())
+}
+
+model LiveTicket {
+  id          String    @id @default(cuid())
+  accessCode  String    @unique
+  liveEventId String
+  liveEvent   LiveEvent @relation(fields: [liveEventId], references: [id], onDelete: Cascade)
+  buyerName   String
+  buyerPhone  String
+  pricePaid   Int
+  createdAt   DateTime  @default(now())
+}
+
+model Contest {
+  id           String            @id @default(cuid())
+  title        String
+  slug         String            @unique
+  description  String
+  category     String            @default("MUSIQUE & TALENTS")
+  coverImage   String
+  votePrice    Int               @default(100) // 100 FCFA / vote
+  status       String            @default("VOTING") // UPCOMING, VOTING, CLOSED
+  endsAt       DateTime
+  totalVotes   Int               @default(0)
+  candidates   Candidate[]
+  votePacks    VotePack[]
+  transactions VoteTransaction[]
+  createdAt    DateTime          @default(now())
+}
+
+model Candidate {
+  id           String            @id @default(cuid())
+  contestId    String
+  contest      Contest           @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  number       Int
+  name         String
+  bio          String
+  photo        String
+  city         String            @default("Cotonou")
+  votesCount   Int               @default(0)
+  transactions VoteTransaction[]
+}
+
+model VotePack {
+  id         String  @id @default(cuid())
+  contestId  String
+  contest    Contest @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  name       String  // Pack Bronze, Argent, Or, Diamant
+  votes      Int
+  price      Int
+  bonusVotes Int     @default(0)
+  popular    Boolean @default(false)
+}
+
+model VoteTransaction {
+  id          String    @id @default(cuid())
+  contestId   String
+  contest     Contest   @relation(fields: [contestId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  voterName   String
+  voterPhone  String
+  votesAdded  Int
+  amountPaid  Int
+  provider    String    @default("KKIAPAY") // KKIAPAY, PAWAPAY, DEMO
+  paymentRef  String    @unique
+  createdAt   DateTime  @default(now())
+}
+
+model Shop {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  description      String
+  logo             String
+  coverImage       String
+  city             String    @default("Cotonou")
+  verified         Boolean   @default(true)
+  subscriptionPlan String    @default("PRO") // STARTER, PRO, BUSINESS
+  ownerId          String    @unique
+  owner            User      @relation(fields: [ownerId], references: [id])
+  products         Product[]
+  createdAt        DateTime  @default(now())
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  shopId        String
+  shop          Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  name          String
+  slug          String      @unique
+  description   String
+  category      String      // MODE, ACCESSOIRES, GOODIES, ELECTRONIQUE, ART
+  price         Int
+  comparePrice  Int?
+  image         String
+  stock         Int         @default(25)
+  featured      Boolean     @default(false)
+  orderItems    OrderItem[]
+  createdAt     DateTime    @default(now())
+}
+
+model Jersey {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  teamOrEvent    String
+  description    String
+  price          Int
+  customPrice    Int      @default(2000) // Supplément flocage nom/numéro
+  image          String
+  availableSizes String   @default("S,M,L,XL,XXL")
+  stock          Int      @default(100)
+  featured       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+}
+
+model Package {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  subtitle    String
+  description String
+  includes    String   // Liste séparée par | (Billet VIP|Hôtel 2 nuits|Navette|T-shirt)
+  price       Int
+  originalPrice Int?
+  image       String
+  available   Int      @default(20)
+  featured    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  orderNumber     String      @unique
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  shippingAddress String
+  city            String      @default("Cotonou")
+  orderType       String      @default("SHOP") // SHOP, JERSEY, PACKAGE
+  totalAmount     Int
+  promoCode       String?
+  discountAmount  Int         @default(0)
+  paymentProvider String      @default("KKIAPAY")
+  paymentStatus   String      @default("PAID") // PENDING, PAID, FAILED
+  deliveryStatus  String      @default("PROCESSING") // PROCESSING, SHIPPED, DELIVERED
+  customMeta      String?     // JSON pour personnalisation maillot (flocage nom, numéro, taille) ou package
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+  title     String
+  quantity  Int
+  unitPrice Int
+}
+
+model PromoCode {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  discountPercent Int      @default(15)
+  maxUses         Int      @default(100)
+  usedCount       Int      @default(12)
+  active          Boolean  @default(true)
+  expiresAt       DateTime
+}
+
+model LoyaltyReward {
+  id          String              @id @default(cuid())
+  title       String
+  description String
+  pointsCost  Int
+  category    String              // TICKET, MERCH, DISCOUNT, VIP
+  image       String
+  stock       Int                 @default(50)
+  redemptions LoyaltyRedemption[]
+}
+
+model LoyaltyRedemption {
+  id         String        @id @default(cuid())
+  userId     String
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId   String
+  reward     LoyaltyReward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  couponCode String        @unique
+  status     String        @default("ACTIVE") // ACTIVE, USED
+  createdAt  DateTime      @default(now())
+}

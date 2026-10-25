@@ -1,0 +1,957 @@
+import fs from 'fs';
+import path from 'path';
+
+export interface TicketTypeItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  sold: number;
+}
+
+export interface EventItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  category: 'CONCERT' | 'FESTIVAL' | 'SOIREE' | 'SPORT' | 'CONFERENCE' | 'THEATRE' | 'HUMOUR';
+  date: string;
+  endDate?: string;
+  location: string;
+  city: string;
+  country: string;
+  coverImage: string;
+  featured: boolean;
+  status: 'DRAFT' | 'PUBLISHED' | 'PAST';
+  jySeraiEnabled: boolean;
+  jySeraiCount: number;
+  organizerName: string;
+  ticketTypes: TicketTypeItem[];
+}
+
+export interface TicketRecord {
+  id: string;
+  ticketCode: string;
+  qrPayload: string;
+  eventId: string;
+  eventTitle: string;
+  eventSlug: string;
+  eventDate: string;
+  eventLocation: string;
+  ticketTypeName: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone: string;
+  pricePaid: number;
+  status: 'VALID' | 'USED' | 'CANCELLED';
+  scannedAt?: string;
+  paymentProvider: string;
+  createdAt: string;
+}
+
+export interface CandidateItem {
+  id: string;
+  number: number;
+  name: string;
+  bio: string;
+  photo: string;
+  city: string;
+  votesCount: number;
+}
+
+export interface VotePackItem {
+  id: string;
+  name: string;
+  votes: number;
+  price: number;
+  bonusVotes: number;
+  popular?: boolean;
+}
+
+export interface ContestItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  category: string;
+  coverImage: string;
+  votePrice: number;
+  status: 'VOTING' | 'CLOSED' | 'UPCOMING';
+  endsAt: string;
+  totalVotes: number;
+  candidates: CandidateItem[];
+  votePacks: VotePackItem[];
+}
+
+export interface LiveEventItem {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  artistOrHost: string;
+  coverImage: string;
+  streamUrl: string;
+  roomName: string;
+  scheduledAt: string;
+  price: number;
+  status: 'SCHEDULED' | 'LIVE' | 'ENDED';
+  viewerCount: number;
+}
+
+export interface LiveTicketRecord {
+  id: string;
+  accessCode: string;
+  liveEventId: string;
+  liveEventTitle: string;
+  liveEventSlug: string;
+  buyerName: string;
+  buyerPhone: string;
+  pricePaid: number;
+  createdAt: string;
+}
+
+export interface ProductItem {
+  id: string;
+  shopId: string;
+  shopName: string;
+  name: string;
+  slug: string;
+  description: string;
+  category: 'MODE' | 'ACCESSOIRES' | 'GOODIES' | 'ELECTRONIQUE' | 'ART';
+  price: number;
+  comparePrice?: number;
+  image: string;
+  stock: number;
+  featured: boolean;
+}
+
+export interface JerseyItem {
+  id: string;
+  title: string;
+  slug: string;
+  teamOrEvent: string;
+  description: string;
+  price: number;
+  customPrice: number;
+  image: string;
+  availableSizes: string[];
+  stock: number;
+  featured: boolean;
+}
+
+export interface PackageItem {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle: string;
+  description: string;
+  includes: string[];
+  price: number;
+  originalPrice?: number;
+  image: string;
+  available: number;
+  featured: boolean;
+}
+
+export interface OrderRecord {
+  id: string;
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  city: string;
+  orderType: 'SHOP' | 'JERSEY' | 'PACKAGE';
+  totalAmount: number;
+  promoCode?: string;
+  discountAmount: number;
+  paymentProvider: string;
+  paymentStatus: 'PAID' | 'PENDING';
+  deliveryStatus: 'PROCESSING' | 'SHIPPED' | 'DELIVERED';
+  customMeta?: Record<string, string>;
+  items: Array<{
+    title: string;
+    quantity: number;
+    unitPrice: number;
+  }>;
+  createdAt: string;
+}
+
+export interface LoyaltyRewardItem {
+  id: string;
+  title: string;
+  description: string;
+  pointsCost: number;
+  category: 'TICKET' | 'MERCH' | 'DISCOUNT' | 'VIP';
+  image: string;
+  stock: number;
+}
+
+export interface RedemptionRecord {
+  id: string;
+  userEmail: string;
+  rewardTitle: string;
+  pointsSpent: number;
+  couponCode: string;
+  status: 'ACTIVE' | 'USED';
+  createdAt: string;
+}
+
+export interface UserRecord {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: 'USER' | 'ORGANIZER' | 'SELLER' | 'SCANNER' | 'ADMIN';
+  loyaltyPoints: number;
+  referralCode: string;
+  referralCount: number;
+  referralEarnings: number;
+  createdAt: string;
+}
+
+export interface BadgeRecord {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  holderName: string;
+  organization: string;
+  accreditationLevel: 'PRESSE' | 'STAFF' | 'ARTISTE' | 'VIP' | 'SECURITE';
+  badgeCode: string;
+  createdAt: string;
+}
+
+export interface DatabaseSchema {
+  events: EventItem[];
+  tickets: TicketRecord[];
+  contests: ContestItem[];
+  liveEvents: LiveEventItem[];
+  liveTickets: LiveTicketRecord[];
+  products: ProductItem[];
+  jerseys: JerseyItem[];
+  packages: PackageItem[];
+  orders: OrderRecord[];
+  rewards: LoyaltyRewardItem[];
+  redemptions: RedemptionRecord[];
+  users: UserRecord[];
+  badges: BadgeRecord[];
+  promoCodes: Array<{ code: string; discountPercent: number; active: boolean }>;
+  voteTransactions: Array<{
+    id: string;
+    contestId: string;
+    contestTitle: string;
+    candidateId: string;
+    candidateName: string;
+    voterName: string;
+    voterPhone: string;
+    votesAdded: number;
+    amountPaid: number;
+    provider: string;
+    paymentRef: string;
+    createdAt: string;
+  }>;
+}
+
+const initialDb: DatabaseSchema = {
+  events: [
+    {
+      id: 'evt-1',
+      title: 'Festival WeLovEya 2026 — Édition Grand Bénin',
+      slug: 'festival-weloveya-2026',
+      description:
+        "Le plus grand festival urbain et afrobeats d'Afrique de l'Ouest revient sur la Place de l'Amazone à Cotonou ! Deux jours de concerts explosifs avec plus de 25 artistes internationaux et béninois, village gastronomique, expériences immersives et feux d'artifice.",
+      category: 'FESTIVAL',
+      date: '2026-12-26T18:00:00.000Z',
+      endDate: '2026-12-28T02:00:00.000Z',
+      location: "Esplanade de l'Amazone",
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1200&auto=format&fit=crop&q=80',
+      featured: true,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 1480,
+      organizerName: 'Eya Centre & BigEvents',
+      ticketTypes: [
+        { id: 'tt-1', name: 'Pass Standard 2 Jours', description: 'Accès esplanade générale pour les 2 jours', price: 10000, quantity: 5000, sold: 3420 },
+        { id: 'tt-2', name: 'Pass VIP', description: 'Zone podium privilégiée + 2 boissons offertes + Fast-track', price: 35000, quantity: 800, sold: 615 },
+        { id: 'tt-3', name: 'Salon VVIP Or (Table 6 pers.)', description: 'Table réservée face scène + bouteilles premium + parking VIP', price: 300000, quantity: 40, sold: 29 }
+      ]
+    },
+    {
+      id: 'evt-2',
+      title: 'Vodun Days Ouidah — Grande Nuit Symphonique & Rythmes Sacrés',
+      slug: 'vodun-days-ouidah-2027',
+      description:
+        "Célébrez le patrimoine culturel, artistique et spirituel du Bénin à la Porte du Non-Retour. Spectacles chorégraphiques monumentaux, concerts live sur la plage de Ouidah et parades traditionnelles.",
+      category: 'FESTIVAL',
+      date: '2027-01-09T16:00:00.000Z',
+      endDate: '2027-01-10T23:59:00.000Z',
+      location: 'Plage de la Porte du Non-Retour',
+      city: 'Ouidah',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=1200&auto=format&fit=crop&q=80',
+      featured: true,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 2390,
+      organizerName: 'Agence Bénin Tourisme',
+      ticketTypes: [
+        { id: 'tt-4', name: 'Accès Plage Découverte', description: 'Accès libre sur inscription avec billet QR', price: 0, quantity: 3000, sold: 2150 },
+        { id: 'tt-5', name: 'Tribune Assise Prestige', description: 'Place assise numérotée face à la scène centrale + kit festivalier', price: 20000, quantity: 600, sold: 480 },
+        { id: 'tt-6', name: 'Loge Royale Ouidah', description: 'Cocktail dînatoire + navette climatisée depuis Cotonou', price: 75000, quantity: 100, sold: 74 }
+      ]
+    },
+    {
+      id: 'evt-3',
+      title: 'Gala du Rire Cotonou Comedy Club — Édition All-Stars',
+      slug: 'cotonou-comedy-club-all-stars',
+      description:
+        "Une soirée d'humour inoubliable réunissant les meilleurs humoristes d'Abidjan, Lomé, Dakar, Douala et Cotonou au Palais des Congrès.",
+      category: 'HUMOUR',
+      date: '2026-11-21T20:00:00.000Z',
+      location: 'Palais des Congrès de Cotonou',
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1585699324551-f6c309eedeca?w=1200&auto=format&fit=crop&q=80',
+      featured: true,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 512,
+      organizerName: 'Cotonou Comedy Prod',
+      ticketTypes: [
+        { id: 'tt-7', name: 'Balcon Standard', description: 'Siège balcon numéroté', price: 5000, quantity: 700, sold: 540 },
+        { id: 'tt-8', name: 'Orchestre VIP', description: 'Premiers rangs orchestre + cocktail', price: 15000, quantity: 300, sold: 210 }
+      ]
+    },
+    {
+      id: 'evt-4',
+      title: 'Afro-Tech & AI Summit Africa 2026',
+      slug: 'afro-tech-ai-summit-2026',
+      description:
+        "Le rendez-vous incontournable des startups, développeurs, fintechs et investisseurs d'Afrique francophone à Sèmè City. Keynotes, ateliers IA, pitch contest et networking VIP.",
+      category: 'CONFERENCE',
+      date: '2026-11-14T08:30:00.000Z',
+      location: 'Sèmè One — Sofitel Cotonou Marina',
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80',
+      featured: false,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 830,
+      organizerName: 'Africa Tech Hub',
+      ticketTypes: [
+        { id: 'tt-9', name: 'Pass Étudiant & Dev', description: 'Accès conférences + ateliers techniques', price: 5000, quantity: 500, sold: 390 },
+        { id: 'tt-10', name: 'Pass Executive & Networking', description: 'Accès complet + Déjeuner B2B + Soirée Founders', price: 50000, quantity: 150, sold: 112 }
+      ]
+    },
+    {
+      id: 'evt-5',
+      title: 'Match de Gala : Guépards du Bénin vs Légendes Africaines',
+      slug: 'guepards-vs-legendes-africaines',
+      description:
+        "Un choc historique au Stade de l'Amitié Général Mathieu Kérékou avec les plus grandes stars du football africain et un show musical à la mi-temps.",
+      category: 'SPORT',
+      date: '2026-12-12T16:00:00.000Z',
+      location: "Stade de l'Amitié Général Mathieu Kérékou",
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=1200&auto=format&fit=crop&q=80',
+      featured: true,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 1920,
+      organizerName: 'Fédération & BigEvents Sport',
+      ticketTypes: [
+        { id: 'tt-11', name: 'Virage Populaire', description: 'Ambiance fan-zone', price: 2000, quantity: 10000, sold: 6800 },
+        { id: 'tt-12', name: 'Tribune Couverte Latérale', description: 'Place assise couverte', price: 5000, quantity: 3000, sold: 2100 },
+        { id: 'tt-13', name: 'Loge Présidentielle VIP', description: 'Siège cuir + Maillot officiel offert + Rafraîchissements', price: 25000, quantity: 400, sold: 310 }
+      ]
+    },
+    {
+      id: 'evt-6',
+      title: 'All White Beach Party — Fidjrossè Sunset',
+      slug: 'all-white-beach-party-fidjrosse',
+      description:
+        "Dress code 100% Blanc sur la plus belle plage privée de Fidjrossè. DJs internationaux, saxophoniste live, grillades et cocktails au coucher du soleil.",
+      category: 'SOIREE',
+      date: '2026-11-28T17:00:00.000Z',
+      location: 'Marina Beach Lounge Fidjrossè',
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=1200&auto=format&fit=crop&q=80',
+      featured: true,
+      status: 'PUBLISHED',
+      jySeraiEnabled: true,
+      jySeraiCount: 345,
+      organizerName: 'Nights of Cotonou',
+      ticketTypes: [
+        { id: 'tt-14', name: 'Entrée Prévente + 1 Cocktail', description: 'Valable avant 21h', price: 10000, quantity: 400, sold: 275 },
+        { id: 'tt-15', name: 'Cabana Lounge (5 personnes)', description: 'Lit balinais privé + 1 bouteille de Champagne', price: 120000, quantity: 20, sold: 14 }
+      ]
+    },
+    {
+      id: 'evt-7',
+      title: 'Concert Symphonique Amazones — Hommage à Angélique Kidjo',
+      slug: 'concert-symphonique-amazones',
+      description:
+        "Un concert d'exception célébrant les grandes voix féminines du Bénin et de la diaspora, joué à guichets fermés.",
+      category: 'CONCERT',
+      date: '2026-08-15T20:00:00.000Z',
+      location: 'CanalOlympia Wologuèdè',
+      city: 'Cotonou',
+      country: 'Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=1200&auto=format&fit=crop&q=80',
+      featured: false,
+      status: 'PAST',
+      jySeraiEnabled: false,
+      jySeraiCount: 980,
+      organizerName: 'BigEvents Live',
+      ticketTypes: [
+        { id: 'tt-16', name: 'Billet Standard', description: 'Complet', price: 10000, quantity: 1500, sold: 1500 }
+      ]
+    }
+  ],
+  tickets: [
+    {
+      id: 'tkt-demo-1',
+      ticketCode: 'BIG-2026-8841',
+      qrPayload: 'BIGEVENTS|BIG-2026-8841|evt-1|VALID',
+      eventId: 'evt-1',
+      eventTitle: 'Festival WeLovEya 2026 — Édition Grand Bénin',
+      eventSlug: 'festival-weloveya-2026',
+      eventDate: '2026-12-26T18:00:00.000Z',
+      eventLocation: "Esplanade de l'Amazone, Cotonou",
+      ticketTypeName: 'Pass VIP',
+      buyerName: 'Koffi Mensah',
+      buyerEmail: 'koffi@bigevents.bj',
+      buyerPhone: '+229 97 00 11 22',
+      pricePaid: 35000,
+      status: 'VALID',
+      paymentProvider: 'KKIAPAY',
+      createdAt: '2026-10-20T14:30:00.000Z'
+    },
+    {
+      id: 'tkt-demo-2',
+      ticketCode: 'BIG-2026-5519',
+      qrPayload: 'BIGEVENTS|BIG-2026-5519|evt-3|VALID',
+      eventId: 'evt-3',
+      eventTitle: 'Gala du Rire Cotonou Comedy Club — Édition All-Stars',
+      eventSlug: 'cotonou-comedy-club-all-stars',
+      eventDate: '2026-11-21T20:00:00.000Z',
+      eventLocation: 'Palais des Congrès de Cotonou',
+      ticketTypeName: 'Orchestre VIP',
+      buyerName: 'Aïcha Soglo',
+      buyerEmail: 'aicha@bigevents.bj',
+      buyerPhone: '+229 96 44 55 66',
+      pricePaid: 15000,
+      status: 'VALID',
+      paymentProvider: 'PAWAPAY',
+      createdAt: '2026-10-22T09:15:00.000Z'
+    }
+  ],
+  contests: [
+    {
+      id: 'cnt-1',
+      title: 'Miss Campus & Leadership Bénin 2026',
+      slug: 'miss-campus-leadership-benin-2026',
+      description:
+        "Votez pour l'étudiante ambassadrice de l'excellence académique, entrepreneuriale et culturelle des universités du Bénin. Chaque vote compte à 50% dans le verdict final !",
+      category: 'BEAUTÉ & LEADERSHIP',
+      coverImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1200&auto=format&fit=crop&q=80',
+      votePrice: 100,
+      status: 'VOTING',
+      endsAt: '2026-12-20T23:59:00.000Z',
+      totalVotes: 28450,
+      candidates: [
+        {
+          id: 'cand-1',
+          number: 1,
+          name: 'Sèna Fifonsi Hounkpatin',
+          bio: "Étudiante en Master Finance Digitale à l'UAC — Porteuse du projet GreenSolar Bénin.",
+          photo: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600&auto=format&fit=crop&q=80',
+          city: 'Abomey-Calavi',
+          votesCount: 11420
+        },
+        {
+          id: 'cand-2',
+          number: 2,
+          name: 'Orlane Kpadonou',
+          bio: 'Étudiante en Architecture & Design Urbain — Ambassadrice de la mode éco-responsable.',
+          photo: 'https://images.unsplash.com/photo-1523824921871-d6f1a15151f1?w=600&auto=format&fit=crop&q=80',
+          city: 'Cotonou',
+          votesCount: 9850
+        },
+        {
+          id: 'cand-3',
+          number: 3,
+          name: 'Nafissatou Bio Tchané',
+          bio: 'Ingénieure Agronome en formation à Parakou — Fondatrice de la coopérative Karité Or.',
+          photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80',
+          city: 'Parakou',
+          votesCount: 7180
+        }
+      ],
+      votePacks: [
+        { id: 'vp-1', name: 'Pack Starter', votes: 5, price: 500, bonusVotes: 0 },
+        { id: 'vp-2', name: 'Pack Fan', votes: 25, price: 2500, bonusVotes: 3, popular: true },
+        { id: 'vp-3', name: 'Pack Gold Supporter', votes: 100, price: 10000, bonusVotes: 20 },
+        { id: 'vp-4', name: 'Pack Royal Patron', votes: 500, price: 50000, bonusVotes: 150 }
+      ]
+    },
+    {
+      id: 'cnt-2',
+      title: 'Bénin Urban Music Awards (BUMA 2026) — Révélation de l’Année',
+      slug: 'benin-urban-music-awards-2026',
+      description:
+        "Soutenez votre artiste favori pour le trophée de la Révélation Urbaine & Afrobeat de l'année lors de la grande cérémonie télévisée.",
+      category: 'MUSIQUE & TALENTS',
+      coverImage: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200&auto=format&fit=crop&q=80',
+      votePrice: 100,
+      status: 'VOTING',
+      endsAt: '2026-12-30T22:00:00.000Z',
+      totalVotes: 43200,
+      candidates: [
+        {
+          id: 'cand-4',
+          number: 1,
+          name: 'K-Mélodie Boy',
+          bio: 'Auteur du tube viral "Cotonou By Night" (3M de streams).',
+          photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&auto=format&fit=crop&q=80',
+          city: 'Cotonou',
+          votesCount: 18500
+        },
+        {
+          id: 'cand-5',
+          number: 2,
+          name: 'Queen Zaria',
+          bio: 'Voix afro-soul et R&B originaire de Porto-Novo.',
+          photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
+          city: 'Porto-Novo',
+          votesCount: 15100
+        },
+        {
+          id: 'cand-6',
+          number: 3,
+          name: 'DJ Vano Beats',
+          bio: 'Producteur Amapiano & Gbonhoun Moderne.',
+          photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=600&auto=format&fit=crop&q=80',
+          city: 'Ouidah',
+          votesCount: 9600
+        }
+      ],
+      votePacks: [
+        { id: 'vp-5', name: 'Pack 10 Votes', votes: 10, price: 1000, bonusVotes: 1 },
+        { id: 'vp-6', name: 'Pack 50 Votes', votes: 50, price: 5000, bonusVotes: 8, popular: true },
+        { id: 'vp-7', name: 'Pack Club 250 Votes', votes: 250, price: 25000, bonusVotes: 60 }
+      ]
+    }
+  ],
+  liveEvents: [
+    {
+      id: 'live-1',
+      title: 'Concert Privé Acoustique — Sessions de Ganvié en Direct HD',
+      slug: 'concert-prive-sessions-ganvie-live',
+      description:
+        'Vivez en direct multi-caméras 4K et son spatialisé ce concert exclusif filmé sur la cité lacustre de Ganvié avec chat interactif.',
+      artistOrHost: 'Orchestre Poly-Rythmo & Invités',
+      coverImage: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200&auto=format&fit=crop&q=80',
+      streamUrl: 'https://assets.mixkit.co/videos/preview/mixkit-stage-lights-at-a-concert-4167-large.mp4',
+      roomName: 'ganvie-acoustic-hd-2026',
+      scheduledAt: '2026-11-05T20:30:00.000Z',
+      price: 2500,
+      status: 'LIVE',
+      viewerCount: 842
+    },
+    {
+      id: 'live-2',
+      title: 'Pay-Per-View : Grand Gala de Boxe & MMA Africain — Cotonou Fight Night',
+      slug: 'cotonou-fight-night-ppv',
+      description:
+        '8 combats professionnels internationaux retransmis en direct du Hall des Arts de Cotonou.',
+      artistOrHost: 'Arène Fight League Africa',
+      coverImage: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&auto=format&fit=crop&q=80',
+      streamUrl: 'https://assets.mixkit.co/videos/preview/mixkit-crowd-cheering-at-a-rock-concert-14042-large.mp4',
+      roomName: 'cotonou-fight-night-2026',
+      scheduledAt: '2026-11-18T21:00:00.000Z',
+      price: 3000,
+      status: 'SCHEDULED',
+      viewerCount: 310
+    },
+    {
+      id: 'live-3',
+      title: 'Masterclass Entrepreneuriat & E-Commerce en Afrique de l’Ouest',
+      slug: 'masterclass-ecommerce-afrique-live',
+      description:
+        'Session interactive de 3 heures avec Q&A en direct pour lancer et scaler sa marque sur le continent.',
+      artistOrHost: 'Collectif Tech & Business Bénin',
+      coverImage: 'https://images.unsplash.com/photo-1591115765373-5207764f72e7?w=1200&auto=format&fit=crop&q=80',
+      streamUrl: 'https://assets.mixkit.co/videos/preview/mixkit-stage-lights-at-a-concert-4167-large.mp4',
+      roomName: 'masterclass-biz-2026',
+      scheduledAt: '2026-11-10T18:00:00.000Z',
+      price: 1500,
+      status: 'SCHEDULED',
+      viewerCount: 195
+    }
+  ],
+  liveTickets: [
+    {
+      id: 'lt-1',
+      accessCode: 'LIVE-GANVIE-2026',
+      liveEventId: 'live-1',
+      liveEventTitle: 'Concert Privé Acoustique — Sessions de Ganvié en Direct HD',
+      liveEventSlug: 'concert-prive-sessions-ganvie-live',
+      buyerName: 'Koffi Mensah',
+      buyerPhone: '+229 97 00 11 22',
+      pricePaid: 2500,
+      createdAt: '2026-10-25T10:00:00.000Z'
+    }
+  ],
+  products: [
+    {
+      id: 'prd-1',
+      shopId: 'shop-1',
+      shopName: 'Dahomey Royal Streetwear',
+      name: 'Hoodie Collector "Agodjié Amazone" — Noir & Or',
+      slug: 'hoodie-collector-agodjie-amazone',
+      description: 'Sweat à capuche coton premium 400g brodé au fil doré inspiré des guerrières Agodjié.',
+      category: 'MODE',
+      price: 18000,
+      comparePrice: 25000,
+      image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800&auto=format&fit=crop&q=80',
+      stock: 45,
+      featured: true
+    },
+    {
+      id: 'prd-2',
+      shopId: 'shop-1',
+      shopName: 'Dahomey Royal Streetwear',
+      name: 'Casquette Snapback "Cotonou Vibes" Édition Limitée',
+      slug: 'casquette-snapback-cotonou-vibes',
+      description: 'Casquette brodée 3D avec fermeture ajustable et dessous de visière motif Kanvo.',
+      category: 'ACCESSOIRES',
+      price: 7500,
+      comparePrice: 10000,
+      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800&auto=format&fit=crop&q=80',
+      stock: 80,
+      featured: true
+    },
+    {
+      id: 'prd-3',
+      shopId: 'shop-2',
+      shopName: 'Art & Kanvo du Bénin',
+      name: 'Sac Cabas Tissé Kanvo Authentique & Cuir',
+      slug: 'sac-cabas-tisse-kanvo-cuir',
+      description: 'Tissé à la main par les artisans d’Abomey avec finitions en cuir véritable.',
+      category: 'MODE',
+      price: 22000,
+      comparePrice: 28000,
+      image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&auto=format&fit=crop&q=80',
+      stock: 18,
+      featured: true
+    },
+    {
+      id: 'prd-4',
+      shopId: 'shop-2',
+      shopName: 'Art & Kanvo du Bénin',
+      name: 'Bracelet Connecté NFC Festivalier BigEvents',
+      slug: 'bracelet-connecte-nfc-festivalier',
+      description: 'Bracelet étanche réutilisable permettant le cashless et le partage de profil instantané.',
+      category: 'ELECTRONIQUE',
+      price: 5000,
+      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&auto=format&fit=crop&q=80',
+      stock: 150,
+      featured: true
+    },
+    {
+      id: 'prd-5',
+      shopId: 'shop-1',
+      shopName: 'Dahomey Royal Streetwear',
+      name: 'Lunettes de Soleil Polarisées "Ouidah Sunset"',
+      slug: 'lunettes-soleil-ouidah-sunset',
+      description: 'Monture acétate et branches en bois d’ébène, protection UV400.',
+      category: 'ACCESSOIRES',
+      price: 12000,
+      comparePrice: 15000,
+      image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&auto=format&fit=crop&q=80',
+      stock: 32,
+      featured: false
+    },
+    {
+      id: 'prd-6',
+      shopId: 'shop-2',
+      shopName: 'Art & Kanvo du Bénin',
+      name: 'Statuette Design "Trône du Roi Béhanzin" Miniature',
+      slug: 'statuette-design-trone-behanzin',
+      description: 'Pièce décorative en bronze et bois précieux sculptée à la main.',
+      category: 'ART',
+      price: 35000,
+      image: 'https://images.unsplash.com/photo-1582555172866-f73bb12a2ab3?w=800&auto=format&fit=crop&q=80',
+      stock: 10,
+      featured: false
+    }
+  ],
+  jerseys: [
+    {
+      id: 'jrs-1',
+      title: 'Maillot Officiel Domicile "Guépards du Bénin" 2026 — Jaune Or',
+      slug: 'maillot-domicile-guepards-benin-2026',
+      teamOrEvent: 'Équipe Nationale — Les Guépards',
+      description: 'Tissu respirant Dri-Fit avec griffes de Guépard en filigrane. Personnalisez avec votre nom et numéro au dos !',
+      price: 15000,
+      customPrice: 2500,
+      image: 'https://images.unsplash.com/photo-1577212017184-80cc0da11082?w=800&auto=format&fit=crop&q=80',
+      availableSizes: ['S', 'M', 'L', 'XL', 'XXL'],
+      stock: 250,
+      featured: true
+    },
+    {
+      id: 'jrs-2',
+      title: 'Maillot Collector Extérieur "Amazones Black Edition"',
+      slug: 'maillot-collector-amazones-black',
+      teamOrEvent: 'Édition Spéciale Centenaire',
+      description: 'Design noir mat et motifs dorés royaux. Flocage officiel thermique haute résistance.',
+      price: 18000,
+      customPrice: 2500,
+      image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&auto=format&fit=crop&q=80',
+      availableSizes: ['S', 'M', 'L', 'XL', 'XXL'],
+      stock: 120,
+      featured: true
+    },
+    {
+      id: 'jrs-3',
+      title: 'Maillot Officiel Festival WeLovEya 2026 — Jersey Urbain',
+      slug: 'maillot-festival-weloveya-2026',
+      teamOrEvent: 'Festival WeLovEya',
+      description: 'Le maillot baseball/football officiel des festivaliers avec flocage personnalisé.',
+      price: 12000,
+      customPrice: 2000,
+      image: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=800&auto=format&fit=crop&q=80',
+      availableSizes: ['S', 'M', 'L', 'XL'],
+      stock: 180,
+      featured: true
+    }
+  ],
+  packages: [
+    {
+      id: 'pkg-1',
+      title: 'Pack Séjour Royal — Vodun Days Ouidah (3 Jours / 2 Nuits)',
+      slug: 'pack-sejour-royal-vodun-days-ouidah',
+      subtitle: 'Hôtel 4★ en bord de mer + Pass Tribune Prestige + Navette VIP',
+      description:
+        'Vivez les Vodun Days sans aucun souci logistique : hébergement premium à Casa del Papa ou Djègba Hotel, transport climatisé aller-retour depuis Cotonou, circuit guidé historique et accès VIP aux concerts.',
+      includes: [
+        'Pass Tribune Prestige 2 Jours',
+        '2 Nuits en Hôtel 4★ (Petit-déjeuner inclus)',
+        'Navette VIP climatisée Cotonou ↔ Ouidah',
+        'Visite guidée Route des Esclaves & Temple des Pythons',
+        'Kit Collector (T-shirt, chapeau, bracelet NFC)'
+      ],
+      price: 145000,
+      originalPrice: 185000,
+      image: 'https://images.unsplash.com/photo-1540541338287-41700207dee6?w=1000&auto=format&fit=crop&q=80',
+      available: 25,
+      featured: true
+    },
+    {
+      id: 'pkg-2',
+      title: 'Pack Escapade WeLovEya Duo — Expérience Tout Compris',
+      slug: 'pack-escapade-weloveya-duo',
+      subtitle: '2 Pass VIP + Maillots Officiels + Crédit Cashless 30 000 FCFA',
+      description:
+        'Le pack idéal pour vivre le festival à deux avec accès coupe-file, tenues officielles et consommations prépayées.',
+      includes: [
+        '2 Pass VIP Festival 2 Jours',
+        '2 Maillots Officiels personnalisés à vos noms',
+        'Carte Cashless créditée de 30 000 FCFA',
+        'Parking réservé & Accès Lounge Artistes'
+      ],
+      price: 95000,
+      originalPrice: 120000,
+      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=1000&auto=format&fit=crop&q=80',
+      available: 40,
+      featured: true
+    }
+  ],
+  orders: [
+    {
+      id: 'ord-1',
+      orderNumber: 'ORD-2026-9012',
+      customerName: 'Koffi Mensah',
+      customerEmail: 'koffi@bigevents.bj',
+      customerPhone: '+229 97 00 11 22',
+      shippingAddress: 'Haie Vive, Rue des Cocotiers, Maison 42',
+      city: 'Cotonou',
+      orderType: 'JERSEY',
+      totalAmount: 17500,
+      discountAmount: 0,
+      paymentProvider: 'KKIAPAY',
+      paymentStatus: 'PAID',
+      deliveryStatus: 'SHIPPED',
+      customMeta: { size: 'L', customName: 'MENSAH', customNumber: '10' },
+      items: [
+        {
+          title: 'Maillot Officiel Domicile "Guépards du Bénin" 2026 (Flocage: MENSAH #10)',
+          quantity: 1,
+          unitPrice: 17500
+        }
+      ],
+      createdAt: '2026-10-23T16:40:00.000Z'
+    }
+  ],
+  rewards: [
+    {
+      id: 'rew-1',
+      title: 'Bon de Réduction -5 000 FCFA sur tout billet VIP',
+      description: 'Utilisable immédiatement sur tous les concerts et festivals BigEvents.',
+      pointsCost: 200,
+      category: 'DISCOUNT',
+      image: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=600&auto=format&fit=crop&q=80',
+      stock: 100
+    },
+    {
+      id: 'rew-2',
+      title: 'Casquette Officielle BigEvents Edition Or',
+      description: 'Retrait gratuit à notre stand ou livraison à Cotonou.',
+      pointsCost: 450,
+      category: 'MERCH',
+      image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&auto=format&fit=crop&q=80',
+      stock: 35
+    },
+    {
+      id: 'rew-3',
+      title: 'Surclassement Pass Standard → Pass VIP Backstage',
+      description: 'Accédez à la loge VIP et rencontrez les artistes lors de votre prochain événement.',
+      pointsCost: 800,
+      category: 'VIP',
+      image: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&auto=format&fit=crop&q=80',
+      stock: 15
+    }
+  ],
+  redemptions: [],
+  users: [
+    {
+      id: 'usr-1',
+      name: 'Koffi Mensah (Client & Ambassadeur)',
+      email: 'koffi@bigevents.bj',
+      phone: '+229 97 00 11 22',
+      role: 'USER',
+      loyaltyPoints: 640,
+      referralCode: 'KOFFI229',
+      referralCount: 14,
+      referralEarnings: 28500,
+      createdAt: '2026-06-12T10:00:00.000Z'
+    },
+    {
+      id: 'usr-2',
+      name: 'Admin Général BigEvents',
+      email: 'admin@bigevents.bj',
+      phone: '+229 96 42 74 34',
+      role: 'ADMIN',
+      loyaltyPoints: 5000,
+      referralCode: 'BIGADMIN',
+      referralCount: 82,
+      referralEarnings: 195000,
+      createdAt: '2026-01-01T00:00:00.000Z'
+    },
+    {
+      id: 'usr-3',
+      name: 'Eya Productions (Organisateur)',
+      email: 'orga@bigevents.bj',
+      phone: '+229 91 22 33 44',
+      role: 'ORGANIZER',
+      loyaltyPoints: 1200,
+      referralCode: 'EYAPROD',
+      referralCount: 31,
+      referralEarnings: 74000,
+      createdAt: '2026-03-10T08:00:00.000Z'
+    },
+    {
+      id: 'usr-4',
+      name: 'Dahomey Royal (Vendeur FStore)',
+      email: 'seller@bigevents.bj',
+      phone: '+229 95 88 77 66',
+      role: 'SELLER',
+      loyaltyPoints: 450,
+      referralCode: 'DAHOMEY',
+      referralCount: 9,
+      referralEarnings: 18000,
+      createdAt: '2026-04-18T11:20:00.000Z'
+    }
+  ],
+  badges: [
+    {
+      id: 'bdg-1',
+      eventId: 'evt-1',
+      eventTitle: 'Festival WeLovEya 2026 — Édition Grand Bénin',
+      holderName: 'Médard Agbayazon',
+      organization: 'ORTB / SRTB Télévision',
+      accreditationLevel: 'PRESSE',
+      badgeCode: 'ACCRED-WLE-001',
+      createdAt: '2026-10-20T12:00:00.000Z'
+    },
+    {
+      id: 'bdg-2',
+      eventId: 'evt-1',
+      eventTitle: 'Festival WeLovEya 2026 — Édition Grand Bénin',
+      holderName: 'Didier Zinsou',
+      organization: 'Production Scène Centrale',
+      accreditationLevel: 'STAFF',
+      badgeCode: 'ACCRED-WLE-002',
+      createdAt: '2026-10-21T09:00:00.000Z'
+    }
+  ],
+  promoCodes: [
+    { code: 'BENIN229', discountPercent: 15, active: true },
+    { code: 'WELOVEYA10', discountPercent: 10, active: true },
+    { code: 'VIP20', discountPercent: 20, active: true }
+  ],
+  voteTransactions: [
+    {
+      id: 'vt-1',
+      contestId: 'cnt-1',
+      contestTitle: 'Miss Campus & Leadership Bénin 2026',
+      candidateId: 'cand-1',
+      candidateName: 'Sèna Fifonsi Hounkpatin',
+      voterName: 'Ulrich Dossou',
+      voterPhone: '+229 97 11 22 33',
+      votesAdded: 28,
+      amountPaid: 2500,
+      provider: 'KKIAPAY',
+      paymentRef: 'KKIA-992014',
+      createdAt: '2026-10-25T08:15:00.000Z'
+    }
+  ]
+};
+
+const DB_DIR = path.join(process.cwd(), 'data');
+const DB_FILE = path.join(DB_DIR, 'bigevents-db.json');
+
+export function getDb(): DatabaseSchema {
+  try {
+    if (!fs.existsSync(DB_DIR)) {
+      fs.mkdirSync(DB_DIR, { recursive: true });
+    }
+    if (!fs.existsSync(DB_FILE)) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
+      return structuredClone(initialDb);
+    }
+    const raw = fs.readFileSync(DB_FILE, 'utf-8');
+    return JSON.parse(raw) as DatabaseSchema;
+  } catch {
+    return structuredClone(initialDb);
+  }
+}
+
+export function saveDb(data: DatabaseSchema): void {
+  try {
+    if (!fs.existsSync(DB_DIR)) {
+      fs.mkdirSync(DB_DIR, { recursive: true });
+    }
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to persist DB:', err);
+  }
+}
